@@ -1,5 +1,5 @@
 /**
- *Submitted for verification at BscScan.com on 2022-01-20
+ *Submitted for verification at BscScan.com on 2022-03-02
 */
 
 pragma solidity ^0.8.5;
@@ -90,7 +90,7 @@ abstract contract Auth {
     /**
      * Transfer ownership to new address. Caller must be owner
      */
-    function transferOwnership(address payable adr) public onlyOwner {
+    function transferOwnership(address payable adr) external onlyOwner {
         require(adr !=  address(0),  "adr is a zero address");
         owner = adr;
         emit OwnershipTransferred(adr);
@@ -154,8 +154,8 @@ interface IDEXRouter {
 contract Label2Earn is IBEP20, Auth {
     using SafeMath for uint256;
 
-    address private WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
-    address private DEAD = 0x000000000000000000000000000000000000dEaD;
+    address constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
+    address constant DEAD = 0x000000000000000000000000000000000000dEaD;
 
     address public REWARD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
     address public PANCAKE_ROUTER = 0x10ED43C718714eb63d5aA57B78B54704E256024E;
@@ -164,7 +164,7 @@ contract Label2Earn is IBEP20, Auth {
     string constant _symbol = "L2E";
     uint8 constant _decimals = 18;
 
-    uint256 _totalSupply = 256000000 * (10 ** _decimals);
+    uint256 constant _totalSupply = 256000000 * (10 ** _decimals);
    
     uint256 public _maxTxAmount = (_totalSupply * 10) / 1000;
     uint256 public _maxWalletSize = (_totalSupply * 30) / 1000; 
@@ -183,9 +183,9 @@ contract Label2Earn is IBEP20, Auth {
 
     uint256 public liqamount = 0;
 
-    mapping(address => bool) public _isBlacklisted;
+												   
     
-    address private marketingFeeReceiver = 0xbD4d2bFC985Ec6dE018cE91D1850bcCb6E5b85A7;
+    address private marketingFeeReceiver = 0x12FCdD3C178Be4F86f6d909779c4E2BB2f644DA3;
 
     IDEXRouter public router;
     address public pair;
@@ -216,7 +216,7 @@ contract Label2Earn is IBEP20, Auth {
 
     receive() external payable { }
 
-    function totalSupply() external view override returns (uint256) { return _totalSupply; }
+    function totalSupply() external pure override returns (uint256) { return _totalSupply; }
     function decimals() external pure override returns (uint8) { return _decimals; }
     function symbol() external pure override returns (string memory) { return _symbol; }
     function name() external pure override returns (string memory) { return _name; }
@@ -246,7 +246,7 @@ contract Label2Earn is IBEP20, Auth {
     }
 
     function _transferFrom(address sender, address recipient, uint256 amount) internal returns (bool) {
-        require(!_isBlacklisted[sender] && !_isBlacklisted[recipient], 'Blacklisted address');
+																							  
         if(inSwap){ return _basicTransfer(sender, recipient, amount); }
         
         checkTxLimit(sender, amount);
@@ -369,23 +369,24 @@ contract Label2Earn is IBEP20, Auth {
         }
     }
     
-    function blacklistAddress(address account, bool value) external onlyOwner{
-        _isBlacklisted[account] = value;
-    }
-    
+																			  
+										
+	 
+	
     function checkTxLimit(address sender, uint256 amount) internal view {
         require(amount < _maxTxAmount || isTxLimitExempt[sender], "TX Limit Exceeded");
     }
     
     function setTxLimit(uint256 amount) external onlyOwner {
-        if(amount > _totalSupply / 50){
+        if(amount * (10 ** _decimals) > _totalSupply / 50){
             revert();
         }
         _maxTxAmount = amount * (10 ** _decimals);
+        emit maxTxAmountChanged(amount * (10 ** _decimals));
     }
 
    function setMaxWallet(uint256 amount) external onlyOwner() {
-        if(amount > _totalSupply / 20 ){
+        if(amount * (10 ** _decimals) > _totalSupply / 20 ){
             revert();
         }
         _maxWalletSize = amount * (10 ** _decimals);
@@ -404,6 +405,7 @@ contract Label2Earn is IBEP20, Auth {
         burnFeeSell = _burnFeeSell;
         buyAndTransferFee = _buyAndTransferFee;
         totalFeeSell = _liquidityFeeSell.add(_marketingFeeSell).add(_burnFeeSell);
+        emit feeChanged(_liquidityFeeSell , _marketingFeeSell , _burnFeeSell , _buyAndTransferFee);
     }
 
     function setFeeReceiver(address _marketingFeeReceiver) external  onlyOwner {
@@ -425,13 +427,14 @@ contract Label2Earn is IBEP20, Auth {
     function setSwapBackSettings(bool _enabled, uint256 _amount) external  onlyOwner {
         swapEnabled = _enabled;
         swapThreshold = _amount * (10 ** _decimals);
+        emit swapThresholdChanged(_amount * (10 ** _decimals), _enabled);
     }
 
-    function getCirculatingSupply() public view returns (uint256) {
+    function getCirculatingSupply() external view returns (uint256) {
         return _totalSupply.sub(balanceOf(DEAD));
     }
 
-    function transferForeignToken(address _token) public onlyOwner returns (bool) {
+    function transferForeignToken(address _token) external onlyOwner returns (bool) {
         if(_token != address(this) && _token != address(REWARD)){
             revert();
         }
@@ -447,4 +450,7 @@ contract Label2Earn is IBEP20, Auth {
     }
 
     event AutoLiquify(uint256 amountBNB, uint256 amountBOG);
+    event swapThresholdChanged(uint256 amount , bool enabled);
+    event maxTxAmountChanged(uint256 amount);
+    event feeChanged(uint256 _liquidityFeeSell,  uint256 _marketingFeeSell, uint256 _burnFeeSell , uint256 _buyAndTransferFee);
 }
