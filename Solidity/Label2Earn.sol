@@ -1,7 +1,3 @@
-/**
- *Submitted for verification at BscScan.com on 2022-03-02
-*/
-
 pragma solidity ^0.8.5;
 // SPDX-License-Identifier: MIT
 
@@ -166,8 +162,8 @@ contract Label2Earn is IBEP20, Auth {
 
     uint256 constant _totalSupply = 256000000 * (10 ** _decimals);
    
-    uint256 public _maxTxAmount = (_totalSupply * 10) / 1000;
-    uint256 public _maxWalletSize = (_totalSupply * 30) / 1000; 
+    uint256 public _maxTxAmount = (_totalSupply * 5) / 100;
+    uint256 public _maxWalletSize = (_totalSupply * 10) / 100; 
 
     mapping (address => uint256) _balances;
     mapping (address => mapping (address => uint256)) _allowances;
@@ -378,17 +374,11 @@ contract Label2Earn is IBEP20, Auth {
     }
     
     function setTxLimit(uint256 amount) external onlyOwner {
-        if(amount * (10 ** _decimals) > _totalSupply / 50){
-            revert();
-        }
         _maxTxAmount = amount * (10 ** _decimals);
         emit maxTxAmountChanged(amount * (10 ** _decimals));
     }
 
    function setMaxWallet(uint256 amount) external onlyOwner() {
-        if(amount * (10 ** _decimals) > _totalSupply / 20 ){
-            revert();
-        }
         _maxWalletSize = amount * (10 ** _decimals);
     }
 
