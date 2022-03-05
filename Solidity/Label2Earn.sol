@@ -374,11 +374,17 @@ contract Label2Earn is IBEP20, Auth {
     }
     
     function setTxLimit(uint256 amount) external onlyOwner {
+        if(amount * (10 ** _decimals) < _totalSupply / 1000){
+            revert();
+        }
         _maxTxAmount = amount * (10 ** _decimals);
         emit maxTxAmountChanged(amount * (10 ** _decimals));
     }
 
    function setMaxWallet(uint256 amount) external onlyOwner() {
+        if(amount * (10 ** _decimals) < _totalSupply / 100){
+            revert();
+        }
         _maxWalletSize = amount * (10 ** _decimals);
     }
 
