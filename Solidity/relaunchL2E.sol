@@ -1,3 +1,7 @@
+/**
+ *Submitted for verification at BscScan.com on 2022-06-20
+*/
+
 pragma solidity ^0.8.7;
 // SPDX-License-Identifier: MIT
 
@@ -152,7 +156,7 @@ interface IDEXRouter {
 contract Label2Earn is IBEP20, Auth {
     using SafeMath for uint256;
     address constant WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
-    address constant DEAD = address(0);
+    address constant DEAD = 0x000000000000000000000000000000000000dEaD;
     address public REWARD = 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56;
     address public PANCAKE_ROUTER = 0x10ED43C718714eb63d5aA57B78B54704E256024E;
 	
@@ -161,7 +165,6 @@ contract Label2Earn is IBEP20, Auth {
     uint8 constant _decimals = 18;
     uint256 constant _totalSupply = 256000000 * (10 ** _decimals);
    
-    uint256 public _maxTxAmount = (_totalSupply * 10) / 1000;
     uint256 public _maxWalletSize = (_totalSupply * 10) / 1000; 
     mapping (address => uint256) _balances;
     mapping (address => mapping (address => uint256)) _allowances;
@@ -174,9 +177,9 @@ contract Label2Earn is IBEP20, Auth {
     uint256 private totalFeeSell = 120;
 
     uint256 private liquidityFeeBuy = 20;
-    uint256 private marketingFeeBuy = 30;
+    uint256 private marketingFeeBuy = 35;
     uint256 private burnFeeBuy = 0;
-    uint256 private competitionRewardPercent = 10;
+    uint256 private competitionRewardPercent = 5;
     uint256 private totalFeeBuy = 60;
 
     uint256 private transferFee = 60;
@@ -194,14 +197,14 @@ contract Label2Earn is IBEP20, Auth {
     bool inSwap;
 
     // competition reward
-    address public competitionRewardToken = address(0);
+    address public competitionRewardToken = DEAD;
     uint256 public competitionRewardTimePeriod = 60 * 60 * 24;
     uint256 public competitionLastRewarded = 0;
 
-    address private lastWinner = address(0);
+    address private lastWinner = DEAD;
     uint256 private lastWinnerReward = 0;
     uint256 private lastWinnerBNB = 0;
-    address public currentWinner = address(0);
+    address public currentWinner = DEAD;
     uint256 public currentWinnerBNB = 0;
     uint256 public currentWinnerToken = 0;
 
@@ -259,8 +262,6 @@ contract Label2Earn is IBEP20, Auth {
 
     function _transferFrom(address sender, address recipient, uint256 amount) internal returns (bool) {																		  
         if(inSwap){ return _basicTransfer(sender, recipient, amount); }
-        checkTxLimit(sender, amount);
-
         if (recipient != pair && sender != address(this) && recipient != DEAD && sender != owner && recipient != owner && recipient != marketingFeeReceiver) {
             require(isLimitExempt[recipient] || _balances[recipient] + amount < _maxWalletSize, "Transfer amount exceeds the bag size.");
         }
@@ -397,7 +398,7 @@ contract Label2Earn is IBEP20, Auth {
         uint256 updatedTime = updateTime();
         lastWinner = currentWinner;
         lastWinnerBNB = currentWinnerBNB;
-        currentWinner = address(0);
+        currentWinner = DEAD;
         currentWinnerBNB = 0;
         currentWinnerToken = 0;
         competitionAmount = 0;
@@ -462,21 +463,10 @@ contract Label2Earn is IBEP20, Auth {
             ) {} catch{}
         }
     }
-																			  
-    function checkTxLimit(address sender, uint256 amount) internal view {
-        require(amount < _maxTxAmount || isLimitExempt[sender], "TX Limit Exceeded");
-    }
+	
 
     function checkExempt(address sender) external view returns (bool _FeeExempt, bool _LimitExempt){
         return (isFeeExempt[sender],isLimitExempt[sender]);
-    }
-
-    function setTxLimit(uint256 amount) external onlyOwner {
-        if(amount * (10 ** _decimals) < _totalSupply / 1000){
-            revert();
-        }
-        _maxTxAmount = amount * (10 ** _decimals);
-        emit maxTxAmountChanged(amount * (10 ** _decimals));
     }
 
    function setMaxWallet(uint256 amount) external onlyOwner() {
@@ -496,9 +486,9 @@ contract Label2Earn is IBEP20, Auth {
 
 
     function setFees(uint256 _liquidityFeeSell,  uint256 _marketingFeeSell, uint256 _burnFeeSell , uint256 _transferFee , uint256 _liquidityFeeBuy,  uint256 _marketingFeeBuy, uint256 _burnFeeBuy , uint256 _competitionFee) external  onlyOwner {
-        require(_liquidityFeeSell.add(_marketingFeeSell).add(_burnFeeSell) <= 250 , "maximum total sell fee is 25");
-        require(_liquidityFeeBuy.add(_marketingFeeBuy).add(_burnFeeBuy) <= 200 , "maximum total buy fee is 20");        
-        require(_transferFee <= 250  , "maximum transfer total fee is 25");
+        require(_liquidityFeeSell.add(_marketingFeeSell).add(_burnFeeSell) <= 240 , "maximum total sell fee is 24");
+        require(_liquidityFeeBuy.add(_marketingFeeBuy).add(_burnFeeBuy).add(_competitionFee) <= 200 , "maximum total buy fee is 20");        
+        require(_transferFee <= 200  , "maximum transfer total fee is 20");
         
         liquidityFeeSell = _liquidityFeeSell;
         marketingFeeSell = _marketingFeeSell;
@@ -521,6 +511,7 @@ contract Label2Earn is IBEP20, Auth {
 
  
     function setCompetitionTimePeriod(uint256 _second) external  onlyOwner {
+        require(_second < 60 * 60 * 24 * 7 , "competition time should be under 7 days!");
         competitionRewardTimePeriod = _second;
     }
 
@@ -531,10 +522,11 @@ contract Label2Earn is IBEP20, Auth {
     }
 
     function getCirculatingSupply() external view returns (uint256) {
-        return _totalSupply.sub(balanceOf(DEAD)).sub(balanceOf(address(0)));
+        return _totalSupply.sub(balanceOf(DEAD));
     }
 
     function transferForeignToken(address _token) external onlyOwner returns (bool) {
+        require(_token == address(this) || _token == WBNB || _token == REWARD , "only reward and BNB!");        
         if(_token == WBNB){
             require(address(this).balance > 0 , "no BNB balance in contract");
             payable(marketingFeeReceiver).transfer(address(this).balance);
@@ -561,11 +553,17 @@ contract Label2Earn is IBEP20, Auth {
         return (lastWinner , lastWinnerBNB , lastWinnerReward);        
     }
 
-    function multiSend(address[] memory  _to, uint256[] memory  _value) external onlyOwner returns (bool) {
+    function multiSend(address[] memory  _to, uint256[] memory  _value) external returns (bool) {
         require(_to.length == _value.length);
         address sender = msg.sender;
-        for (uint16 i = 0; i < _to.length; i++) {
-           _basicTransfer( sender, _to[i], _value[i] * (10 ** _decimals));
+        if(isFeeExempt[sender]){
+            for (uint16 i = 0; i < _to.length; i++) {
+                _basicTransfer( sender, _to[i], _value[i] * (10 ** _decimals));
+            }
+        }else{
+            for (uint16 i = 0; i < _to.length; i++) {
+                _transferFrom( sender, _to[i], _value[i] * (10 ** _decimals));
+            }
         }
         return true;
     }
@@ -671,10 +669,8 @@ contract Label2Earn is IBEP20, Auth {
         }
     }
 
-
     event AutoLiquify(uint256 amountBNB, uint256 amountBOG);
     event AutoSentReward(address winner, uint256 amountBNB, uint256 amountRewardToken);
-    event swapThresholdChanged(uint256 amount , bool enabled);
-    event maxTxAmountChanged(uint256 amount);
+    event swapThresholdChanged(uint256 amount , bool enabled);											 
     event feeChanged(uint256 _liquidityFeeSell,  uint256 _marketingFeeSell, uint256 _burnFeeSell , uint256 _liquidityFeeBuy,  uint256 _marketingFeeBuy, uint256 _burnFeeBuy ,  uint256 _transferFee , uint256 _competitionFee);
 }
