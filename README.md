@@ -3,7 +3,7 @@ Label2Earn (L2E) is a new kind of project in crypto domain, which will produce a
 
 https://www.Label2Earn.com
 
-https://t.me/Label2Earn
+https://t.me/L2EOfficial
 
 https://twitter.com/Label2Earn
 
